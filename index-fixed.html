@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة EduCenter - إدارة المراكز التعليمية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' }
+          },
+          fontFamily: { sans: ['Inter', 'Noto Sans Arabic', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', 'Noto Sans Arabic', sans-serif; background: #f1f5f9; height: 100vh; }
+    .sidebar { width: 260px; transition: width .3s; position: fixed; top: 0; right: 0; height: 100vh; z-index: 50; display: flex; flex-direction: column; background: #1a1b2e; color: white; }
+    .sidebar.collapsed { width: 70px; }
+    .sidebar.collapsed .st, .sidebar.collapsed .logo-text { display: none; }
+    .main { transition: margin-right .3s; height: 100vh; overflow-y: auto; margin-right: 260px; }
+    .sidebar.collapsed ~ .main { margin-right: 70px; }
+    .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .login-box { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .modal-bg.show { opacity: 1; pointer-events: auto; }
+    .toast-msg { position: fixed; bottom: 20px; right: 20px; background: #10b981; color: #fff; padding: 12px 20px; border-radius: 8px; z-index: 200; }
+    .nav-item { transition: all .2s; }
+    .nav-item:hover { background: rgba(79, 70, 229, 0.1); }
+  </style>
+</head>
+<body>
+  <!-- صفحة الدخول -->
+  <div id="loginPage" class="login-container">
+    <div class="login-box">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="graduation-cap" class="w-8 h-8 text-white"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800">EduCenter Pro</h1>
+        <p class="text-gray-600 text-sm mt-2">منصة إدارة المراكز التعليمية</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">معرف المستخدم</label>
+          <input id="loginId" type="text" value="MASTER-001" placeholder="MASTER-001" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+          <input id="loginPassword" type="password" value="admin123" placeholder="admin123" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-600 focus:ring-1 focus:ring-primary-600">
+        </div>
+        
+        <button onclick="doLogin()" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 rounded-lg transition">
+          دخول
+        </button>
+      </div>
+      
+      <p class="text-center text-gray-500 text-xs mt-6">MASTER-001 / admin123</p>
+    </div>
+  </div>
+
+  <!-- التطبيق الرئيسي -->
+  <div id="mainApp" style="display: none; display: flex; height: 100vh;">
+    <aside id="sb" class="sidebar">
+      <div class="p-4 flex items-center gap-3 border-b border-white/10">
+        <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center"><i data-lucide="graduation-cap" class="w-6 h-6"></i></div>
+        <span class="logo-text font-bold text-lg">EduCenter</span>
+      </div>
+      <nav class="flex-1 py-4 overflow-y-auto" id="sbNav"></nav>
+      <div class="p-4 border-t border-white/10">
+        <button onclick="toggleSB()" class="w-full flex items-center gap-3 text-gray-400 hover:text-white py-2 rounded-lg px-2 transition">
+          <i data-lucide="panel-left-close" class="w-5 h-5"></i>
+          <span class="st text-sm">Collapse</span>
+        </button>
+      </div>
+    </aside>
+    
+    <div class="main" id="main">
+      <header class="bg-white shadow-sm sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-800" id="pageTitle">Dashboard</h2>
+        <div class="flex items-center gap-3">
+          <button onclick="toggleLang()" class="p-2 hover:bg-gray-100 rounded-lg transition"><i data-lucide="globe" class="w-5 h-5"></i></button>
+          <div class="flex items-center gap-2 pl-3 border-l border-gray-200">
+            <span class="text-sm font-medium text-gray-700" id="headerUserName">Admin</span>
+            <button onclick="doLogout()" class="p-2 hover:bg-red-50 rounded-lg transition"><i data-lucide="log-out" class="w-4 h-4 text-red-500"></i></button>
+          </div>
+        </div>
+      </header>
+      <div id="page" class="p-6"></div>
+    </div>
+  </div>
+  
+  <div id="modalWrap"></div>
+
+  <script src="data/initialData.js"></script>
+  <script src="components/students.js"></script>
+  <script src="components/classes.js"></script>
+  <script src="components/attendance.js"></script>
+
+  <script>
+    // المتغيرات الأساسية
+    let lang = localStorage.getItem('lang') || 'ar';
+    let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+    let currentRoute = '#/dashboard';
+
+    const navItems = [
+      { route: '#/dashboard', icon: 'home', label: 'Dashboard' },
+      { route: '#/students', icon: 'users', label: 'الطلاب' },
+      { route: '#/classes', icon: 'book-open', label: 'الفصول' },
+      { route: '#/teachers', icon: 'user-check', label: 'المعلمون' },
+      { route: '#/attendance', icon: 'calendar-check', label: 'الحضور' }
+    ];
+
+    function doLogin() {
+      const id = document.getElementById('loginId').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      if (!id || !password) {
+        alert('يرجى ملء جميع الحقول');
+        return;
+      }
+
+      if (id === 'MASTER-001' && password === 'admin123') {
+        currentUser = { id: 'MASTER-001', name: 'Master Admin', role: 'master' };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        document.getElementById('headerUserName').textContent = currentUser.name;
+        
+        buildSB();
+        renderPage();
+        lucide.createIcons();
+      } else {
+        alert('بيانات دخول خاطئة!\n\nالمعرف: MASTER-001\nكلمة المرور: admin123');
+      }
+    }
+
+    function doLogout() {
+      if (confirm('هل تريد تسجيل الخروج؟')) {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('loginId').value = 'MASTER-001';
+        document.getElementById('loginPassword').value = 'admin123';
+      }
+    }
+
+    function buildSB() {
+      const sbNav = document.getElementById('sbNav');
+      let html = navItems.map(item => `
+        <a href="javascript:void(0)" onclick="go('${item.route}')" class="nav-item flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white transition ${currentRoute === item.route ? 'text-white bg-primary-600' : ''}">
+          <i data-lucide="${item.icon}" class="w-5 h-5"></i>
+          <span class="st text-sm">${item.label}</span>
+        </a>
+      `).join('');
+      sbNav.innerHTML = html;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function go(route) {
+      currentRoute = route;
+      renderPage();
+      buildSB();
+    }
+
+    function renderPage() {
+      const page = document.getElementById('page');
+      const title = document.getElementById('pageTitle');
+
+      let html = '<div class="text-center py-12"><p class="text-gray-500">قيد التطوير...</p></div>';
+      let pageTitle = 'Dashboard';
+
+      if (currentRoute === '#/dashboard') {
+        const students = getData('students');
+        const classes = getData('classes');
+        html = `
+          <div class="space-y-6">
+            <h2 class="text-3xl font-bold text-gray-800">لوحة التحكم</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="bg-white rounded-lg border border-gray-200 p-6"><p class="text-gray-600 text-sm">إجمالي الطلاب</p><p class="text-3xl font-bold text-primary-600 mt-2">${students.length}</p></div>
+              <div class="bg-white rounded-lg border border-gray-200 p-6"><p class="text-gray-600 text-sm">عدد الفصول</p><p class="text-3xl font-bold text-green-600 mt-2">${classes.length}</p></div>
+              <div class="bg-white rounded-lg border border-gray-200 p-6"><p class="text-gray-600 text-sm">المعلمون</p><p class="text-3xl font-bold text-blue-600 mt-2">1</p></div>
+              <div class="bg-white rounded-lg border border-gray-200 p-6"><p class="text-gray-600 text-sm">المراكز</p><p class="text-3xl font-bold text-purple-600 mt-2">1</p></div>
+            </div>
+          </div>
+        `;
+        pageTitle = 'Dashboard';
+      } else if (currentRoute === '#/students') {
+        html = StudentsComponent.render();
+        pageTitle = 'الطلاب';
+      } else if (currentRoute === '#/classes') {
+        html = ClassesComponent.render();
+        pageTitle = 'الفصول';
+      } else if (currentRoute === '#/attendance') {
+        html = AttendanceComponent.render();
+        pageTitle = 'الحضور والغياب';
+      }
+
+      page.innerHTML = html;
+      title.textContent = pageTitle;
+      lucide.createIcons();
+    }
+
+    function toggleSB() {
+      document.getElementById('sb').classList.toggle('collapsed');
+    }
+
+    function toggleLang() {
+      lang = lang === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', lang);
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      renderPage();
+      buildSB();
+    }
+
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.className = 'toast-msg';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    function showM(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.add('show');
+    }
+
+    function hideM(id) {
+      const m = document.getElementById(id);
+      if (m) m.classList.remove('show');
+    }
+
+    // تهيئة الصفحة
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeData();
+      
+      if (currentUser) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'flex';
+        document.getElementById('headerUserName').textContent = currentUser.name;
+        
+        if (lang === 'ar') {
+          document.documentElement.dir = 'rtl';
+        } else {
+          document.documentElement.dir = 'ltr';
+        }
+        
+        buildSB();
+        renderPage();
+      } else {
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+      }
+      
+      lucide.createIcons();
+    });
+
+    // الدخول بضغط Enter
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && document.getElementById('loginPage').style.display !== 'none') {
+        doLogin();
+      }
+    });
+  </script>
+</body>
+</html>
