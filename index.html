@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منصة EduCenter - إدارة المراكز التعليمية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Arial', sans-serif; background: #f1f5f9; }
+    .login-page { display: flex !important; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .login-box { background: white; border-radius: 12px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
+    .sidebar { width: 260px; position: fixed; top: 0; right: 0; height: 100vh; background: #1a1b2e; color: white; overflow-y: auto; z-index: 50; }
+    .main-app { display: flex; height: 100vh; margin-right: 260px; flex-direction: column; }
+    .header { background: white; padding: 15px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+    .page-content { flex: 1; overflow-y: auto; padding: 20px; }
+    .btn-primary { background: #4f46e5; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-primary:hover { background: #4338ca; }
+    .table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    .table th, .table td { padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb; }
+    .table th { background: #f3f4f6; font-weight: bold; }
+    .table tr:hover { background: #f9fafb; }
+    .stat-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
+    .stat-card h3 { color: #6b7280; font-size: 14px; margin-bottom: 10px; }
+    .stat-card .number { font-size: 32px; font-weight: bold; color: #4f46e5; }
+  </style>
+</head>
+<body>
+  <!-- صفحة الدخول -->
+  <div id="loginPage" class="login-page">
+    <div class="login-box">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 28px; color: #1a1b2e; margin-bottom: 10px;">EduCenter Pro</h1>
+        <p style="color: #6b7280; font-size: 14px;">منصة إدارة المراكز التعليمية</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+        <div>
+          <label style="display: block; font-size: 14px; color: #374151; margin-bottom: 5px;">معرف المستخدم</label>
+          <input id="userId" type="text" value="MASTER-001" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 14px; color: #374151; margin-bottom: 5px;">كلمة المرور</label>
+          <input id="userPass" type="password" value="admin123" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;">
+        </div>
+        <button onclick="login()" class="btn-primary" style="width: 100%; padding: 12px; font-size: 16px;">دخول</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- التطبيق الرئيسي -->
+  <div id="mainApp" style="display: none;">
+    <div class="sidebar" id="sidebar">
+      <div style="padding: 20px; border-bottom: 1px solid #374151;">
+        <h2 style="font-size: 18px; margin: 0;">EduCenter</h2>
+      </div>
+      <div id="navMenu" style="padding: 10px; text-align: right;"></div>
+      <div style="padding: 10px; border-top: 1px solid #374151; margin-top: auto;">
+        <button onclick="logout()" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">خروج</button>
+      </div>
+    </div>
+
+    <div class="main-app">
+      <div class="header">
+        <div style="display: flex; gap: 10px;">
+          <button onclick="toggleLang()" style="padding: 8px 12px; background: #f3f4f6; border: none; border-radius: 6px; cursor: pointer;">🌍</button>
+          <span id="userName" style="color: #374151;"></span>
+        </div>
+      </div>
+
+      <div class="page-content" id="pageContent">
+        <!-- محتوى الصفحة -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // البيانات
+    let currentUser = localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')) : null;
+    let lang = localStorage.getItem('lang') || 'ar';
+    let currentPage = 'dashboard';
+
+    const students = [
+      { id: 1, name: 'أحمد محمد', email: 'ahmed@test.com', phone: '0123456789', status: 'نشط' },
+      { id: 2, name: 'فاطمة علي', email: 'fatima@test.com', phone: '0198765432', status: 'نشط' }
+    ];
+
+    const classes = [
+      { id: 1, name: 'الصف الأول - أ', level: 'ابتدائي', students: 25, teacher: 'أ.محمود' },
+      { id: 2, name: 'الصف الثاني - ب', level: 'ابتدائي', students: 22, teacher: 'أ.فاطمة' }
+    ];
+
+    function login() {
+      const id = document.getElementById('userId').value;
+      const pass = document.getElementById('userPass').value;
+
+      if (id === 'MASTER-001' && pass === 'admin123') {
+        currentUser = { id: 'MASTER-001', name: 'مدير النظام' };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showApp();
+      } else {
+        alert('بيانات دخول خاطئة!\nالمعرف: MASTER-001\nكلمة المرور: admin123');
+      }
+    }
+
+    function logout() {
+      if (confirm('هل تريد تسجيل الخروج؟')) {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        location.reload();
+      }
+    }
+
+    function showApp() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'flex';
+      document.getElementById('userName').textContent = currentUser.name;
+      buildNav();
+      showDashboard();
+    }
+
+    function buildNav() {
+      const nav = document.getElementById('navMenu');
+      const items = [
+        { id: 'dashboard', name: '📊 لوحة التحكم' },
+        { id: 'students', name: '👥 الطلاب' },
+        { id: 'classes', name: '📚 الفصول' },
+        { id: 'attendance', name: '✅ الحضور' }
+      ];
+
+      nav.innerHTML = items.map(item => `
+        <button onclick="showPage('${item.id}')" style="width: 100%; padding: 12px; margin: 5px 0; text-align: right; background: ${currentPage === item.id ? '#4f46e5' : '#374151'}; color: white; border: none; border-radius: 6px; cursor: pointer;">
+          ${item.name}
+        </button>
+      `).join('');
+    }
+
+    function showPage(page) {
+      currentPage = page;
+      buildNav();
+      if (page === 'dashboard') showDashboard();
+      else if (page === 'students') showStudents();
+      else if (page === 'classes') showClasses();
+      else if (page === 'attendance') showAttendance();
+    }
+
+    function showDashboard() {
+      const content = document.getElementById('pageContent');
+      content.innerHTML = `
+        <h1 style="font-size: 24px; color: #1a1b2e; margin-bottom: 20px;">لوحة التحكم</h1>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+          <div class="stat-card">
+            <h3>إجمالي الطلاب</h3>
+            <div class="number">${students.length}</div>
+          </div>
+          <div class="stat-card">
+            <h3>عدد الفصول</h3>
+            <div class="number">${classes.length}</div>
+          </div>
+          <div class="stat-card">
+            <h3>المعلمون</h3>
+            <div class="number">3</div>
+          </div>
+          <div class="stat-card">
+            <h3>المراكز</h3>
+            <div class="number">1</div>
+          </div>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 8px;">
+          <h2 style="font-size: 18px; color: #1a1b2e; margin-bottom: 15px;">آخر الطلاب</h2>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>البريد</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.map(s => `
+                <tr>
+                  <td>${s.name}</td>
+                  <td>${s.email}</td>
+                  <td><span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px;">${s.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function showStudents() {
+      const content = document.getElementById('pageContent');
+      content.innerHTML = `
+        <h1 style="font-size: 24px; color: #1a1b2e; margin-bottom: 20px;">الطلاب</h1>
+        <button class="btn-primary" style="margin-bottom: 20px;">+ إضافة طالب</button>
+        <div style="background: white; border-radius: 8px; overflow: hidden;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>الاسم</th>
+                <th>البريد</th>
+                <th>الهاتف</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${students.map(s => `
+                <tr>
+                  <td>${s.name}</td>
+                  <td>${s.email}</td>
+                  <td>${s.phone}</td>
+                  <td><span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px;">${s.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function showClasses() {
+      const content = document.getElementById('pageContent');
+      content.innerHTML = `
+        <h1 style="font-size: 24px; color: #1a1b2e; margin-bottom: 20px;">الفصول</h1>
+        <button class="btn-primary" style="margin-bottom: 20px;">+ إضافة فصل</button>
+        <div style="background: white; border-radius: 8px; overflow: hidden;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>اسم الفصل</th>
+                <th>المستوى</th>
+                <th>عدد الطلاب</th>
+                <th>المعلم</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${classes.map(c => `
+                <tr>
+                  <td>${c.name}</td>
+                  <td>${c.level}</td>
+                  <td>${c.students}</td>
+                  <td>${c.teacher}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function showAttendance() {
+      const content = document.getElementById('pageContent');
+      content.innerHTML = `
+        <h1 style="font-size: 24px; color: #1a1b2e; margin-bottom: 20px;">الحضور والغياب</h1>
+        <button class="btn-primary" style="margin-bottom: 20px;">+ تسجيل حضور</button>
+        <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; color: #9ca3af;">
+          لا توجد سجلات حضور
+        </div>
+      `;
+    }
+
+    function toggleLang() {
+      lang = lang === 'ar' ? 'en' : 'ar';
+      localStorage.setItem('lang', lang);
+      alert('تم تغيير اللغة إلى: ' + (lang === 'ar' ? 'العربية' : 'English'));
+    }
+
+    // تهيئة الصفحة
+    window.addEventListener('load', () => {
+      if (currentUser) {
+        showApp();
+      }
+    });
+  </script>
+</body>
+</html>
